@@ -7,6 +7,10 @@ function uuid = generateUUID()
 % This function provides a pure-MATLAB alternative to java.util.UUID.randomUUID
 % for compatibility with MATLAB R2025a and later, which no longer support
 % Java-based UUID generation in all configurations.
+%
+% Note: This function uses MATLAB's randi for random number generation,
+% which is suitable for producing unique identifiers but is not
+% cryptographically secure.
 
 data = uint8(randi([0 255], 1, 16));
 data(7) = bitor(bitand(data(7), uint8(15)), uint8(64));   % Set version to 4

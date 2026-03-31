@@ -62,6 +62,8 @@ classdef ChannelStatsViewer < handle
         %% gui selection functions
         function treeSelectFun( obj, src , ~ )  
             % get selected data index
+            % Note: when no item is selected, get(src,'Value') returns [].
+            % The bounds check below handles this case gracefully.
             iData = get(src, 'Value');
             
             % make sure it is a valid index
