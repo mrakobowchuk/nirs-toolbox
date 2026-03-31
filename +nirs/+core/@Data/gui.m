@@ -109,52 +109,44 @@ handles.SDGhandles=SDGhandles;
 handles.linehandles=linehandles;
 
 if(length(obj)>1)
-    warning('off','MATLAB:Java:DuplicateClass');
     handles.uipanel=uipanel('parent',h,...
         'Units','normalized','Position',[.7 .05 .28 .4]);
     
     demo=nirs.createDemographicsTable(obj);
+    listLabels=cell(length(obj),1);
     if(isempty(demo))
-        DataTable=cell(length(obj),1);
         for i=1:length(obj)
             if(isempty(obj(i).description))
-                DataTable{i}=['Entry-' num2str(i)];
+                listLabels{i}=['Entry-' num2str(i)];
             else
-                [~, DataTable{i},~]=fileparts(obj(i).description);
+                [~, name, ~]=fileparts(obj(i).description);
+                listLabels{i}=name;
             end
         end
-        jtable = treeTable(handles.uipanel,{'Entry'},DataTable,...
-            'ColumnTypes',{'char'},'groups',[false]);
     else
         cnt=length(find(ismember({'group','subject'},demo.Properties.VariableNames)));
-        DataTable=cell(length(obj),1+cnt);
         for i=1:height(demo)
             if(isempty(obj(i).description))
-                DataTable{i,1}=['Entry-' num2str(i)];
+                entry=['Entry-' num2str(i)];
             else
-                [~, DataTable{i,1},~]=fileparts(obj(i).description);
+                [~, entry, ~]=fileparts(obj(i).description);
             end
             if(cnt==2)
-                DataTable{i,2}=demo.group{i};
-                DataTable{i,3}=demo.subject{i};
-                str={'Entry' 'Group' 'Subject'};
+                listLabels{i}=[entry ' [' demo.group{i} '/' demo.subject{i} ']'];
             elseif(ismember({'group'},demo.Properties.VariableNames))
-                DataTable{i,2}=demo.group{i};
-                str={'Entry' 'Group'};
+                listLabels{i}=[entry ' [' demo.group{i} ']'];
             elseif(ismember({'subject'},demo.Properties.VariableNames))
-                DataTable{i,2}=demo.subject{i};
-                
-                str={'Entry'  'Subject'};
+                listLabels{i}=[entry ' [' demo.subject{i} ']'];
             else
-                str={'Entry'};
+                listLabels{i}=entry;
             end
         end
-        jtable = treeTable(handles.uipanel,str,DataTable,...
-            'ColumnTypes',repmat({'char'},cnt+1,1),'groups',false(cnt+1,1));
     end
     
-    set(handle(jtable.getSelectionModel,'CallbackProperties'), 'ValueChangedCallback', []);
-    set(jtable,'MousePressedCallback',@tablechange);
+    handles.jtable = uicontrol('Style','listbox','Parent',handles.uipanel,...
+        'Units','normalized','Position',[0 0 1 1],...
+        'String',listLabels,'Value',1,...
+        'Callback',@tablechange);
 end
 
 set(handles.axis_main,'userdata',obj);
@@ -165,7 +157,7 @@ set(h,'userdata',handles);
 return
 
 function tablechange(varargin)
-idx=get(varargin{1},'SelectedRow')+1;
+idx=get(varargin{1},'Value');
 
 
 handles=guihandles(findobj('tag','nirsviewer'));

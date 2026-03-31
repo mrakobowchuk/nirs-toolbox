@@ -266,8 +266,7 @@ classdef Mesh
 
         function write_as_obj(obj,filename,object_name)
             if(nargin<3)
-                temp =  java.util.UUID.randomUUID;
-                object_name = temp.toString;
+                object_name = nirs.util.generateUUID();
             end
 
             % % write .obj file

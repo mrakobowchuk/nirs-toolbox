@@ -47,13 +47,14 @@ classdef TimeSeriesViewer < handle
         end
         
         %% gui selection functions
-        function treeSelectFun( obj, mtree , ~ )  
-            % get slected node
-            iData = mtree.getSelectedNodes();
-            iData = iData(1).getValue();
+        function treeSelectFun( obj, src , ~ )  
+            % get selected data index
+            % Note: when no item is selected, get(src,'Value') returns [].
+            % The bounds check below handles this case gracefully.
+            iData = get(src, 'Value');
             
-            % make sure it is a leaf
-            if ~ischar( iData )
+            % make sure it is a valid index
+            if ~isempty(iData) && iData >= 1 && iData <= length(obj.data)
                 cla(obj.ax_probe);
                 obj.data(iData).probe.draw([0.3 0.5 1], {'LineStyle', '-', 'LineWidth', 6}, obj.ax_probe);
             
@@ -98,8 +99,7 @@ classdef TimeSeriesViewer < handle
             iSrc = i(1);
             iDet = i(2);
             
-            iData = obj.tree.getSelectedNodes();
-            iData = iData(1).getValue();
+            iData = get(obj.tree, 'Value');
             
             % find the channel idx
             link = obj.data(iData).probe.link;
@@ -143,8 +143,7 @@ classdef TimeSeriesViewer < handle
             
             %%% TODO: Color & Style lines to match data plot %%%
             
-            iData = obj.tree.getSelectedNodes();
-            iData = iData(1).getValue();
+            iData = get(obj.tree, 'Value');
             iChan = lst;
             
             obj.drawData(iData, iChan);
@@ -160,8 +159,7 @@ classdef TimeSeriesViewer < handle
             obj.dtype = lst{idx};
             
             % which data file
-            iData = obj.tree.getSelectedNodes();
-            iData = iData(1).getValue();
+            iData = get(obj.tree, 'Value');
             
             % find channels matching type
             link = obj.data(iData).probe.link;
@@ -179,13 +177,11 @@ classdef TimeSeriesViewer < handle
         end
         
         %%
-        function root = assembleRoot( obj )
-            % root node
-            root = uitreenode('v0', 'Data', 'Data', [], false);
-
-            % node for each file
+        function labels = assembleRoot( obj )
+            % Build list of entry labels for the listbox
+            labels = cell(1, length(obj.data));
             for i = 1:length(obj.data)
-                root.add( uitreenode('v0', i, [ num2str(i) ':' obj.data(i).description], [], true) );
+                labels{i} = [ num2str(i) ':' obj.data(i).description ];
             end
         end
         
@@ -211,12 +207,11 @@ classdef TimeSeriesViewer < handle
             % make figure window
             f = figure('Position', [res(1)*.092 res(2)*.081 res(1) res(2)]);
             
-            % show tree
-            %Cannot get it to resize appropriate
-            obj.tree = uitree('v0', 'Root', obj.root, 'SelectionChangeFcn',...
-                @(t, v) obj.treeSelectFun(t, v),'Position',...
-                [res(1)*.0293 res(2)*.057 res(1)*.329 res(2)*.325]);
-            obj.tree.setMultipleSelectionEnabled(false)
+            % show file selection list
+            obj.tree = uicontrol('Style', 'listbox', ...
+                'String', obj.root, ...
+                'Position', [res(1)*.0293 res(2)*.057 res(1)*.329 res(2)*.325], ...
+                'Callback', @(src,~) obj.treeSelectFun(src, []));
                         
             % menu for selecting data type
             types = unique(probe.link.type);
