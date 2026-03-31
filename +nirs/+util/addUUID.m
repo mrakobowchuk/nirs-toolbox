@@ -31,7 +31,7 @@ if(~ismember('UUID',demographics.Properties.VariableNames))
     [s,id]=unique(UUID);
 
     for i=1:length(s)
-        uuid = char(java.util.UUID.randomUUID);
+        uuid = nirs.util.generateUUID();
         lst=find(ismember(UUID,s{i}));
         for j=1:length(lst)
             demographics.UUID{lst(j)}=uuid;

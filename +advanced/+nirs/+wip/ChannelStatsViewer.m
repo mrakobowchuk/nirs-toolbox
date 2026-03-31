@@ -60,13 +60,12 @@ classdef ChannelStatsViewer < handle
         end
         
         %% gui selection functions
-        function treeSelectFun( obj, mtree , ~ )  
-            % get slected node
-            iData = mtree.getSelectedNodes();
-            iData = iData(1).getValue();
+        function treeSelectFun( obj, src , ~ )  
+            % get selected data index
+            iData = get(src, 'Value');
             
-            % make sure it is a leaf
-            if ~ischar( iData )
+            % make sure it is a valid index
+            if ~isempty(iData) && iData >= 1 && iData <= length(obj.stats)
                 cla( obj.ax_probe )
                 axes( obj.ax_probe )
                 obj.data(iData).probe.draw();
@@ -112,8 +111,7 @@ classdef ChannelStatsViewer < handle
             iSrc = i(1);
             iDet = i(2);
             
-            iData = obj.tree.getSelectedNodes();
-            iData = iData(1).getValue();
+            iData = get(obj.tree, 'Value');
             
             % find the channel idx
             link = obj.data(iData).probe.link;
@@ -157,8 +155,7 @@ classdef ChannelStatsViewer < handle
             
             %%% TODO: Color & Style lines to match data plot %%%
             
-            iData = obj.tree.getSelectedNodes();
-            iData = iData(1).getValue();
+            iData = get(obj.tree, 'Value');
             iChan = lst;
             
             obj.drawData(iData, iChan);
@@ -174,8 +171,7 @@ classdef ChannelStatsViewer < handle
             obj.dtype = lst{idx};
             
             % which data file
-            iData = obj.tree.getSelectedNodes();
-            iData = iData(1).getValue();
+            iData = get(obj.tree, 'Value');
             
             % find channels matching type
             link = obj.data(iData).probe.link;
@@ -193,13 +189,11 @@ classdef ChannelStatsViewer < handle
         end
         
         %%
-        function root = assembleRoot( obj )
-            % root node
-            root = uitreenode('v0', 'Stats', 'Stats', [], false);
-
-            % node for each file
-            for i = 1:length(obj.data)
-                root.add( uitreenode('v0', i, obj.stats(i).description, [], true) );
+        function labels = assembleRoot( obj )
+            % Build list of entry labels for the listbox
+            labels = cell(1, length(obj.stats));
+            for i = 1:length(obj.stats)
+                labels{i} = obj.stats(i).description;
             end
         end
        
@@ -212,10 +206,11 @@ classdef ChannelStatsViewer < handle
             % make figure window
             figure('Position', [100 100 850 750])
             
-            % show tree
-            obj.tree = uitree('v0', 'Root', obj.root, 'SelectionChangeFcn', @(t, v) obj.treeSelectFun(t, v) );
-            obj.tree.setMultipleSelectionEnabled(false)
-            obj.tree.Position = [50 50 350 300];
+            % show stats selection list
+            obj.tree = uicontrol('Style', 'listbox', ...
+                'String', obj.root, ...
+                'Position', [50 50 350 300], ...
+                'Callback', @(src,~) obj.treeSelectFun(src, []));
             
             % menu for selecting data type
             types = unique(probe.link.type);
