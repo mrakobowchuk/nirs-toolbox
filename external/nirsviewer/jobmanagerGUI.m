@@ -179,7 +179,7 @@ j=[];
 j.prevJob=jobs;
 cnt=1;
 while(~isempty(j.prevJob))
-     g(cnt) = uitreenode('Text', j.prevJob.name, 'NodeData', j.prevJob.name);
+     g(cnt) = uitreenode(root, 'Text', j.prevJob.name, 'NodeData', j.prevJob.name);
      
      opt=options(j.prevJob);
      for idx=1:length(opt)
@@ -356,7 +356,7 @@ lst=min(find(ismember(Names,name)));
 
 try
     if isnumeric(JJ{lst}.(propname)) && ischar(val)
-        val = str2num(val);
+        val = str2double(val);
     elseif islogical(JJ{lst}.(propname)) && ischar(val)
         val = strcmp(val, 'true') || strcmp(val, '1');
     end
@@ -416,8 +416,10 @@ if isempty(node)
     name = '';
     return;
 end
-if ~isempty(node.Parent) && node.Parent ~= a && node.Parent.Parent == a
-    node = node.Parent;
+if ~isempty(node.Parent) && isvalid(node.Parent) && isa(node.Parent, 'matlab.ui.container.TreeNode')
+    if isvalid(node.Parent.Parent) && node.Parent.Parent == a
+        node = node.Parent;
+    end
 end
 name = node.Text;
 
