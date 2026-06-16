@@ -100,8 +100,8 @@ end
 delete(findobj('tag','uitree_cont'));
 delete(findobj('tag','uitree_obj'));
 
-container = uitree(handles.figure_nirsview, 'Units', get(handles.uipanel1,'units'), ...
-    'Position', get(handles.uipanel1,'position'), 'SelectionChangedFcn', @updatewindow);
+container = uitree(handles.figure_nirsview, ...
+    'Position', getpixelposition(handles.uipanel1, true), 'SelectionChangedFcn', @updatewindow);
 set(container, 'Tag', 'uitree_cont');
 
 root = uitreenode(container, 'Text', 'Subjects', 'NodeData', 'Subjects');
