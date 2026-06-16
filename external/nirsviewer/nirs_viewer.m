@@ -100,50 +100,38 @@ end
 delete(findobj('tag','uitree_cont'));
 delete(findobj('tag','uitree_obj'));
 
-import javax.swing.*
-import javax.swing.tree.*;
-root = uitreenode('v0','Subjects', 'Subjects', [], false);
+container = uitree(handles.figure_nirsview, 'Units', get(handles.uipanel1,'units'), ...
+    'Position', get(handles.uipanel1,'position'), 'SelectionChangedFcn', @updatewindow);
+set(container, 'Tag', 'uitree_cont');
+
+root = uitreenode(container, 'Text', 'Subjects', 'NodeData', 'Subjects');
 
 groups=unique(table.group);
 
-
-
 for gIdx=1:length(groups)
-    g = uitreenode('v0', groups{gIdx},  groups{gIdx}, [], false);
+    g = uitreenode(root, 'Text', groups{gIdx}, 'NodeData', groups{gIdx});
     lst=find(ismember(table.group, groups{gIdx}));
     subj=table.subject;
     if(~iscellstr(subj)); subj=cellstr(subj); table.subject=subj;  end;
     subj=unique({subj{lst}});
     for sIdx=1:length(subj)
 
-        s = uitreenode('v0', subj{sIdx},  subj{sIdx}, [], false);
+        s = uitreenode(g, 'Text', subj{sIdx}, 'NodeData', subj{sIdx});
         lstfiles=find(ismember(table.group, groups{gIdx}) & ismember(table.subject, subj{sIdx}));
         for cf=1:length(lstfiles)
             if(~isempty(data(lstfiles(cf)).description))
             [~,file,ext]=fileparts(data(lstfiles(cf)).description);
-            f = uitreenode('v0', num2str(lstfiles(cf)),[file ext],[],true);
+            f = uitreenode(s, 'Text', [file ext], 'NodeData', num2str(lstfiles(cf)));
             else
-                f = uitreenode('v0', num2str(lstfiles(cf)),['file' num2str(lstfiles(cf))],[],true);
+                f = uitreenode(s, 'Text', ['file' num2str(lstfiles(cf))], 'NodeData', num2str(lstfiles(cf)));
             end
-            s.add(f);
         end
-        g.add(s);
     end
-    root.add(g);
 end
 
-[mtree,container] = uitree('v0', 'Root', root);
-set(container,'units',get(handles.uipanel1,'units'));
-set(container,'tag','uitree_cont');
-
-set(container,'position',get(handles.uipanel1,'position'));
-set(container,'visible','on');
-set(container,'userdata',mtree);
-
-mtree.expand(mtree.getRoot);
-mtree.expand(s);
-mtree.setSelectedNode(f);
-set(mtree,'NodeSelectedCallback',@updatewindow);
+expand(root);
+try expand(s); catch; end
+try container.SelectedNodes = f; catch; end
 
 updatewindow;
 return
@@ -160,11 +148,13 @@ data=evalin('base',name);
 
 
 a=findobj('tag','uitree_cont');
-a=get(a,'Userdata');
-node=get(a.Tree,'LastSelectedPathComponent');
+node = a.SelectedNodes;
+if isempty(node)
+    return
+end
 
-filename=node.getName;
-val=str2num(node.getValue);
+filename = node.Text;
+val = str2double(node.NodeData);
 if(isempty(val))
     return
 end

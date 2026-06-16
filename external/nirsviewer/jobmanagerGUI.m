@@ -168,15 +168,18 @@ jobs=get(handles.listbox_loaded,'UserData');
 delete(findobj('tag','uitree_cont_jobs'));
 delete(findobj('tag','uitree_obj_jobs'));
 
-import javax.swing.*
-import javax.swing.tree.*;
-root = uitreenode('v0','jobs', 'jobs', [], false);
+figure(handles.figure1);
+container = uitree(handles.figure1, 'Units', get(handles.listbox_loaded,'units'), ...
+    'Position', get(handles.listbox_loaded,'position'), 'SelectionChangedFcn', @listbox_loaded_Callback);
+set(container,'tag','uitree_cont_jobs');
+
+root = uitreenode(container, 'Text', 'jobs', 'NodeData', 'jobs');
 
 j=[];
 j.prevJob=jobs;
 cnt=1;
 while(~isempty(j.prevJob))
-     g(cnt) = uitreenode('v0', j.prevJob.name,  j.prevJob.name, [], false);
+     g(cnt) = uitreenode(root, 'Text', j.prevJob.name, 'NodeData', j.prevJob.name);
      
      opt=options(j.prevJob);
      for idx=1:length(opt)
@@ -211,42 +214,21 @@ while(~isempty(j.prevJob))
          if(~isempty(val))
              try
                  str =[opt{idx} ' = ' val(1,:)];
-                 o = uitreenode('v0', str,  str, [], true);
-                 g(cnt).add(o);
+                 uitreenode(g(cnt), 'Text', str, 'NodeData', str);
              end
          end
      end
-     
      
      cnt=cnt+1;
      j=j.prevJob;
 end
 if(exist('g'))
 for idx=length(g):-1:1
-    root.add(g(idx));
+    g(idx).Parent = root;
 end
 end
-figure(handles.figure1);
 
-[mtree,container] = uitree('v0', 'Root', root);
-set(container,'units',get(handles.listbox_loaded,'units'));
-set(container,'tag','uitree_cont_jobs');
-
-set(container,'position',get(handles.listbox_loaded,'position'));
-set(container,'visible','on');
-
-set(container,'userdata',mtree);
-% 
-% 
-% str = convertjobs2str(jobs);
-% set(handles.listbox_loaded,'String',str);
-
-%     
-% for idx=1:length(g)
-%     mtree.expand(g(idx));
-% end
-mtree.expand(mtree.getRoot);
-set(mtree,'NodeSelectedCallback',@listbox_loaded_Callback);
+expand(root);
 
 return
 
@@ -322,57 +304,43 @@ while(~isempty(j.prevJob))
     Names{cnt}=JJ{cnt}.name;
      cnt=cnt+1;
 end
-lst=min(find(ismember(Names,toCharArray(name)')));
+lst=find(ismember(Names,name), 1, 'first');
 
 if(isempty(lst) || ~ismember('javaoptions',methods(JJ{lst})))
     return
 end
 
-prop=javaoptions(JJ{lst});
-
-com.mathworks.mwswing.MJUtilities.initJIDE;
- 
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import javax.swing.*;
-import com.mathworks.mwswing.*;
-% Property list
-list = java.util.ArrayList();
-
-for idx=1:length(prop)
-    set(prop(idx),'Value',JJ{lst}.(get(prop(idx),'name')));
-    list.add(prop(idx));
-   
+opts = options(JJ{lst});
+data = cell(length(opts), 2);
+for idx=1:length(opts)
+    data{idx, 1} = opts{idx};
+    val = JJ{lst}.(opts{idx});
+    if isnumeric(val)
+        val = num2str(val);
+    elseif islogical(val)
+        if val
+            val = 'true';
+        else
+            val = 'false';
+        end
+    end
+    data{idx, 2} = val;
 end
 
-% Prepare a properties table containing the list
-model = com.jidesoft.grid.PropertyTableModel(list);
-model.expandAll();
-grid = com.jidesoft.grid.PropertyTable(model);
-pane = com.jidesoft.grid.PropertyPane(grid);
-
-warning('off','MATLAB:hg:PossibleDeprecatedJavaSetHGProperty');
-hModel = handle(model, 'CallbackProperties');
-set(hModel, 'PropertyChangeCallback', @callback_onPropertyChange);
-
-
-%addlistener(model,'PropertyChange',@callback_onPropertyChange);
- 
-% Display the properties pane onscreen
-[pan,comp]=javacomponent(pane, [0 0 200 200], handles.uipanel2);
-set(comp,'units','normalized','position',[0 0 1 1]);
+delete(get(handles.uipanel2, 'Children'));
+t = uitable('Parent', handles.uipanel2, 'Data', data, 'ColumnName', {'Property', 'Value'}, ...
+    'ColumnEditable', [false true], 'Units', 'normalized', 'Position', [0 0 1 1], ...
+    'CellEditCallback', @callback_onPropertyChange);
 set( handles.uipanel2,'UserData',name);
 
 return
 
-function callback_onPropertyChange(varargin)
+function callback_onPropertyChange(hObject, eventdata)
 handles=guidata(findobj('tag','listbox_loaded'));
-prop=varargin{2};
-val=prop.getNewValue;
-propname=prop.getPropertyName;
+propname = eventdata.Source.Data{eventdata.Indices(1), 1};
+val = eventdata.NewValue;
 
 name=get(findobj('tag','uipanel2'),'Userdata');
-%name=getselectednode;
 
 jobs=get(handles.listbox_loaded,'UserData');
 j.prevJob=jobs;
@@ -384,15 +352,26 @@ while(~isempty(j.prevJob))
     Names{cnt}=JJ{cnt}.name;
     cnt=cnt+1;
 end
-lst=min(find(ismember(Names,toCharArray(name)')));
-JJ{lst}=setfield(JJ{lst},propname.toCharArray',val);
+lst=find(ismember(Names,name), 1, 'first');
+
+try
+    if isnumeric(JJ{lst}.(propname)) && ischar(val)
+        val = str2double(val);
+    elseif islogical(JJ{lst}.(propname)) && ischar(val)
+        val = strcmp(val, 'true') || strcmp(val, '1');
+    end
+    JJ{lst}.(propname) = val;
+catch
+    hObject.Data{eventdata.Indices(1), 2} = eventdata.PreviousValue;
+    return;
+end
 
 JJ{end}.prevJob=[];
 for idx=length(JJ)-1:-1:1
-    JJ{idx}.prevJob=JJ{idx+1};  
+    JJ{idx}.prevJob=JJ{idx+1};
 end
-jobs=JJ{1};
-set(handles.listbox_loaded,'UserData',jobs);
+set(handles.listbox_loaded,'UserData',JJ{1});
+
 update_tree(handles);
 
 return
@@ -432,12 +411,17 @@ return
 
 function name=getselectednode
 a=findobj('tag','uitree_cont_jobs');
-a=get(a,'Userdata');
-node=get(a.Tree,'LastSelectedPathComponent');
-if(node.getLevel==2)
-    node=node.getParent;
+node=a.SelectedNodes;
+if isempty(node)
+    name = '';
+    return;
 end
-name=node.getName;
+if ~isempty(node.Parent) && isvalid(node.Parent) && isa(node.Parent, 'matlab.ui.container.TreeNode')
+    if isvalid(node.Parent.Parent) && node.Parent.Parent == a
+        node = node.Parent;
+    end
+end
+name = node.Text;
 
 % --- Executes on button press in pushbutton_mov
 function pushbutton_moveup_Callback(hObject, eventdata, handles)
@@ -459,7 +443,7 @@ while(~isempty(j.prevJob))
 end
 
 
-lst=min(find(ismember(Names,toCharArray(name)')));
+lst=find(ismember(Names,name), 1, 'first');
 
 if(lst~=length(JJ))
     JJ={JJ{[1:lst-1 lst+1 lst lst+2:length(JJ)]}};
@@ -499,7 +483,7 @@ while(~isempty(j.prevJob))
 end
 
 
-lst=min(find(ismember(Names,toCharArray(name)')));
+lst=find(ismember(Names,name), 1, 'first');
 
 if(lst~=1)
     JJ={JJ{[1:lst-2 lst lst-1 lst+1:length(JJ)]}};
@@ -536,7 +520,7 @@ while(~isempty(j.prevJob))
 end
 
 
-lst=min(find(ismember(Names,toCharArray(name)')));
+lst=find(ismember(Names,name), 1, 'first');
 
 JJ={JJ{[1:lst-1 lst+1:length(JJ)]}};
 

@@ -61,49 +61,44 @@ guidata(hObject, handles);
 % UIWAIT makes nirsIO_GUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
-[mtree, container] = uitree('v0', 'Root',[pwd filesep],...
-    'ExpandFcn', @myExpfcn,'Parent',handles.uipanel1); % Parent is ignored
-set(container, 'Parent', handles.uipanel1);
-mtree.setMultipleSelectionEnabled(true);
-set(container,'units','normalized','position',[0 0 1 1]);
-set(container,'Tag','IOtree')
-set(container,'Userdata',mtree);
+container = uitree(handles.figure1, 'Units', 'normalized', 'Position', [0 0 1 1], ...
+    'Multiselect', 'on', 'NodeExpandedFcn', @myNodeExpandedFcn);
+container.Parent = handles.uipanel1;
+set(container,'Tag','IOtree');
+rootNode = uitreenode(container, 'Text', pwd, 'NodeData', [pwd filesep]);
+myNodeExpandedFcn(container, struct('Node', rootNode));
+expand(rootNode);
 set(handles.edit1,'String',[pwd filesep]);
 return
 
 
 % ---------------------------------------------
-function nodes = myExpfcn(tree, value)
-
+function myNodeExpandedFcn(tree, event)
+node = event.Node;
+value = node.NodeData;
+if ~isempty(node.Children)
+    return; % already populated
+end
 try
-    count = 0;
     ch = dir(value);
-    
     for i=1:length(ch)
         if (any(strcmp(ch(i).name, {'.', '..', ''})) == 0)
-            
             if ch(i).isdir
-                count = count + 1;
-                iconpath = [matlabroot, '/toolbox/matlab/icons/foldericon.gif'];
-                nodes(count) = uitreenode('v0',[value, ch(i).name, filesep], ...
-                    ch(i).name, iconpath, ~ch(i).isdir);
+                n = uitreenode(node, 'Text', ch(i).name, 'NodeData', [value, ch(i).name, filesep]);
+                % Add a dummy node to make it expandable
+                uitreenode(n, 'Text', 'Loading...', 'NodeData', '');
             elseif(~isempty(strfind(ch(i).name,'.nirs')))
-                count = count + 1;
-                iconpath = [matlabroot, '/toolbox/matlab/icons/pageicon.gif'];
-                nodes(count) = uitreenode('v0',[value, ch(i).name, filesep], ...
-                    ch(i).name, iconpath, ~ch(i).isdir);
+                uitreenode(node, 'Text', ch(i).name, 'NodeData', [value, ch(i).name, filesep]);
             end
-            
+        end
+    end
+    % Remove dummy nodes
+    for i=1:length(node.Children)
+        if strcmp(node.Children(i).Text, 'Loading...')
+            delete(node.Children(i));
         end
     end
 catch
-    error('MyApplication:UnrecognizedNode', ...
-        ['The uitree node type is not recognized. You may need to ', ...
-        'define an ExpandFcn for the nodes.']);
-end
-
-if (count == 0)
-    nodes = [];
 end
 return
 % ---------------------------------------------
@@ -129,13 +124,13 @@ directoryname = uigetdir(pwd, 'Pick a Directory');
 directoryname=[directoryname filesep];
 delete(findobj('tag','IOtree'))
 
-[mtree, container] = uitree('v0', 'Root',directoryname,...
-    'ExpandFcn', @myExpfcn,'Parent',handles.uipanel1); % Parent is ignored
-set(container, 'Parent', handles.uipanel1);
-mtree.setMultipleSelectionEnabled(true);
-set(container,'units','normalized','position',[0 0 1 1]);
-set(container,'Tag','IOtree')
-set(container,'Userdata',mtree);
+container = uitree(handles.figure1, 'Units', 'normalized', 'Position', [0 0 1 1], ...
+    'Multiselect', 'on', 'NodeExpandedFcn', @myNodeExpandedFcn);
+container.Parent = handles.uipanel1;
+set(container,'Tag','IOtree');
+rootNode = uitreenode(container, 'Text', directoryname, 'NodeData', directoryname);
+myNodeExpandedFcn(container, struct('Node', rootNode));
+expand(rootNode);
 set(handles.edit1,'String',directoryname);
 
 return
@@ -150,12 +145,12 @@ fileext={'.snirf','.nirs','.oxy3','.wl1','Probe*.csv'};
 tempdata=get(handles.figure1,'Userdata');
 if(isempty(tempdata)); tempdata=nirs.core.Data.empty; end;
 
-mtree=get(findobj('tag','IOtree'),'Userdata');
-nodes=mtree.getSelectedNodes;
+container=findobj('tag','IOtree');
+nodes=container.SelectedNodes;
 demo=[];
 seldir={}; selfile={};
 for idx=1:length(nodes);
-    sel=nodes(idx).getValue;
+    sel=nodes(idx).NodeData;
     if(sel(end)==filesep), sel(end)=[]; end;
     if(isdir(sel))
         seldir{end+1}=[sel filesep];
