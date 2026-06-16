@@ -304,7 +304,7 @@ while(~isempty(j.prevJob))
     Names{cnt}=JJ{cnt}.name;
      cnt=cnt+1;
 end
-lst=min(find(ismember(Names,name)));
+lst=find(ismember(Names,name), 1, 'first');
 
 if(isempty(lst) || ~ismember('javaoptions',methods(JJ{lst})))
     return
@@ -352,7 +352,7 @@ while(~isempty(j.prevJob))
     Names{cnt}=JJ{cnt}.name;
     cnt=cnt+1;
 end
-lst=min(find(ismember(Names,name)));
+lst=find(ismember(Names,name), 1, 'first');
 
 try
     if isnumeric(JJ{lst}.(propname)) && ischar(val)
@@ -443,7 +443,7 @@ while(~isempty(j.prevJob))
 end
 
 
-lst=min(find(ismember(Names,name)));
+lst=find(ismember(Names,name), 1, 'first');
 
 if(lst~=length(JJ))
     JJ={JJ{[1:lst-1 lst+1 lst lst+2:length(JJ)]}};
@@ -483,7 +483,7 @@ while(~isempty(j.prevJob))
 end
 
 
-lst=min(find(ismember(Names,name)));
+lst=find(ismember(Names,name), 1, 'first');
 
 if(lst~=1)
     JJ={JJ{[1:lst-2 lst lst-1 lst+1:length(JJ)]}};
@@ -520,7 +520,7 @@ while(~isempty(j.prevJob))
 end
 
 
-lst=min(find(ismember(Names,name)));
+lst=find(ismember(Names,name), 1, 'first');
 
 JJ={JJ{[1:lst-1 lst+1:length(JJ)]}};
 

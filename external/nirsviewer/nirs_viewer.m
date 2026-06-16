@@ -154,7 +154,7 @@ if isempty(node)
 end
 
 filename = node.Text;
-val = str2num(node.NodeData);
+val = str2double(node.NodeData);
 if(isempty(val))
     return
 end
